@@ -1,0 +1,49 @@
+\documentclass{amsart}
+\title{Dynamatte: A dynamic matting method to generate in scene video fusion}
+\author{Achleschwar Luthra}
+\author{Christopher Klammer}
+\author{Risha Mishra}
+\date{\today}
+
+
+\usepackage{graphicx}
+\usepackage{biblatex}
+\addbibresource{proposal.bib}
+
+\begin{document}
+
+\begin{abstract}
+ Put an abstract here when you're ready.
+\end{abstract}
+
+\maketitle
+
+\tableofcontents
+
+\section{Motivation}
+Imagine standing on a sandy beach, the wind whipping through your hair as you gaze out at the horizon. The sky is alive with an explosion of hues - pinks, oranges, yellows, and reds - that dance and meld together in a symphony of color. The sun, a giant ball of fire, seems to kiss the ocean as it sinks lower and lower, casting a warm glow across everything it touches.
+
+As you take out your camera, you realize that this moment is too perfect not to capture. You begin to record, the lens capturing every detail - the frothy waves lapping at the shore, the gulls circling overhead, and the distant hum of laughter and conversation from the people around you.
+
+But then, as you pan the camera to the horizon, you wish there was something even more to accentuate the colors in the sky. Maybe a rainbow kite, soaring high above the waves, its vibrant colors a stark contrast to the soft pinks and oranges of the sunset. And then, just beyond it, you imagine spotting a surfer riding a wave, his silhouette outlined against the fiery sky.
+
+You think of the lost potential, the combination of the stunning sunset, the playful kite, and the daring surfer would have been nothing short of magical. As you watch the footage back, you can't help but feel a sense of awe at the beauty of the world around you while wildly dissastified with the limitations of current technology and you couldn't make your picturesque moment that much more vibrant.
+
+
+In video editing, much care and attention must be dedicated towards creating seamless and temporally consistent video with synthetically inserted objects or elements. These efforts consume an obscene amount of time to execute and perfect in post production. However, what if that burden could be ameliorated with a method that could add dynamic objects with photorealistic qualities into a live scene? 
+
+
+\section{Prior Work}
+Many works have have looked at the task of matte creation. Sengupta et al. capture image and background pairs to estimate an alpha matte and foreground in order to place humans in scenes with novel backgrounds \cite{BMSengupta20}. This work primarily looks at using context switching to combine different cues and a self supervised adversarial loss to to take a blended image with the novel background, generating realistic images.
+
+Lu et al. propose Omnimatte, a method to associate pixels in the screen with masked objects in a given scene. This method allows complex effects such as shadows, reflections, smoke, and water ripples to appear in the Omnimatte \cite{lu2021}. This method takes videos as input to train a 2D U-Net that processes the video frame by frame. Each object is processed through a different layer in the model with dense optical flow fields calculated to maintain temporal consistency in the RGBA output.
+
+
+
+\section{The Idea}
+
+
+\section{Baselines}
+
+\printbibliography
+\end{document}
