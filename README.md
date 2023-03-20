@@ -15,6 +15,6 @@ Dynamatte: A dynamic matting method to generate in scene video fusion
 - [ ] Blending from background matting paper
 - [ ] STRETCH: Use GP-GAN for blending
 
-* Richa
-+ Achleschwar
-$ Chris
+*Richa
++Achleschwar
+$Chris
