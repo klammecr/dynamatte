@@ -8,3 +8,6 @@
 *.synctex.gz
 *.toc
 *.xml
+.png
+test*
+.venv/*
