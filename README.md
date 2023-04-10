@@ -19,6 +19,11 @@ Dynamatte: A dynamic matting method to generate in scene video fusion
 +Achleschwar
 $Chris
 
+## Pulling down the repo with omnimatte
+```
+git pull --recurse-submodules
+git submodule update --init --recursive --remote
+```
 
 ## Running Video Preprocessing
 ```
