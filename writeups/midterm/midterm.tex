@@ -67,7 +67,14 @@ We aim to enforce a smooth insertion between the object and the background. In o
 \subsubsection{Style Loss}
 The style of an image usually refers to the texture and other low level features of an image. We plan to use the features from the output of our backbone network. We may experiment with using earlier outputs from layers as they will likely have learned more low-level features.
 
-We compute the **gram matrix**
+We compute the \textbf{gram matrix} for all $C$ feature vectors of the feature maps for the inserted object and the target sequence. We can then calculate the style loss as a mean squared error of the object and target's gram matricies.
+
+Most of the time, the size of the object will not equal the size of the target scene. However, we instead choose to look at the gram matrix of the image before and after insertion of the target in order to measure the information gain (or loss) of our synthetic insertion. To clarify notation, we refer to $G^{obj}$ as the gram matrix after the object is inserted and $G^{tgt}$ to signify the gram matrix of the target image before the object is inserted.
+
+$$G_{i, j} = F_i \cdot F_j$$
+$$\mathcal{L}_{style} = \frac{1}{N_{obj} N_{tgt}} \sum_i \sum_j (G_{i, j}^{tgt} - G_{i, j}^{obj})^2$$
+
+Where $F$ is a list of flattened feature vectors for all $C$ feature maps of the backbone output. $N_{obj}$ and $N_{tgt}$ are the number of entries in the gram matrix of the object and target respectively.
 
 \subsubsection{Temporal Consistency Loss}
 A novel contribution and main challenge of this work is to maintain temporal consistency. Intuitively, when inserting an object into a video, we want to see the following:
