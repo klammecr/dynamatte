@@ -19,6 +19,10 @@ Dynamatte: A dynamic matting method to generate in scene video fusion
 +Achleschwar
 $Chris
 
+## SAM Installation
+```
+pip install git+https://github.com/facebookresearch/segment-anything.git
+```
 
 ## Running Video Preprocessing
 ```
