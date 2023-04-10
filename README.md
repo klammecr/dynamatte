@@ -2,13 +2,13 @@
 Dynamatte: A dynamic matting method to generate in scene video fusion
 
 # Baselines:
-- [ ] *+$ Validate dataset to be used in initial work
+- [x] Validate dataset to be used in initial work
 ## Extraction
-- [ ] + Extract out omnimattes
+- [x] Extract out omnimattes
+- [ ] Omnimatte extraction for custom videos
 - [ ] Extraction differences from layered neural atlases
-- [ ] D2-NeRF
 ## Blending
-- [ ] $ Existing omnimatte data for testing
+- [x] Existing omnimatte data for testing
 - [ ] Utilize results from extraction
 - [ ] Lazy "cut and paste" of extract omnimattes
 - [ ] Poisson image blending
