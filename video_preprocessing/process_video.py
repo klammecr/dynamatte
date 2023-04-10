@@ -114,7 +114,7 @@ def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (
                 torch.save(forward_flow, f"{out_path}/flow/{frame_str}.flo")
                 torch.save(backward_flow, f"{out_path}/flow_backward/{frame_str}.flo")
 
-                 # Clear up temporary CUDA memory
+                # Clear up temporary CUDA memory
                 del img
                 del prev_img
                 del forward_flow
