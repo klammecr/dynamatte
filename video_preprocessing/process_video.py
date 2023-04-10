@@ -7,6 +7,7 @@ import numpy as np
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 from torchvision.models.optical_flow import raft_large
 import torch
+import flowpy
 
 # In House
 
@@ -112,8 +113,8 @@ def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (
                 backward_flow = of_model(img.float(), prev_img.float())
 
                 # Save the flows
-                torch.save(forward_flow, f"{out_path}/flow/{frame_str}.flo")
-                torch.save(backward_flow, f"{out_path}/flow_backward/{frame_str}.flo")
+                flowpy.flow_write(f"{out_path}/flow/{frame_str}.flo", forward_flow.numpy(), format = "flo")
+                flowpy.flow_write(f"{out_path}/flow_backward/{frame_str}.flo", backward_flow.numpy(), format = "flo")
 
                 # Clear up temporary CUDA memory
                 del img

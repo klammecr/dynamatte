@@ -46,14 +46,37 @@ Our project idea aims to overcome this limitation\cite{BMSengupta20} by taking i
 % \textcolor{red}{(Third potential paper: Layered Neural Atlases)}
 
 \section{The Idea}
-As stated before, Omnimatte is a method that has a purpose of taking an input mask for a given object and to return an omnimatte which contains color and opacity along with an optical flow field. Our solution aims to use omnimattes extracting from a video sequence and insert the omnimatte seamlessly into a different video sequence. More formally, for a given video sequence $\mathcal{V}$, we process the video sequence an extract out omnimattes for object j at each frame $i$ as $\mathcal{O}^j_i$ 
 
+\subsection{Using Omnimattes for Video-in-Video Insertion}
+As stated before, Omnimatte is a method that has a purpose of taking an input mask for a given object and to return an omnimatte which contains color and opacity along with an optical flow field. Our solution aims to use omnimattes extracted from a video sequence and insert the omnimatte seamlessly into a different video sequence. More formally, for a given video sequence $\mathcal{V}$, we process the video sequence an extract out omnimattes for object $i$ at each time $t$, homography $H$, mask $M$ and flow $F$ as $O(I_t, H_t, M_t^i, F_t^i)$ = \{$\alpha_t^i, C_t^i, \hat{F_t^i}$\} where $\alpha_t^i$ represents the opacity for the object at a given frame, $C_t^i$ represents the color, and $\hat{F_t^i}$ is the object's flow.
+
+\subsection{Our Contributions}
 We plan to take the result of Omnimatte and seamlessly take one to many omnimattes and seamlessly insert them into an existing video. By doing this, we plan to use existing videos and allow dynamic objects to be added to the videos. The main challenge of this work will be to seamlessly perform domain transfer and conform to noise and background objects.
 
 % Let's put this in the related work
 % In Background Matting },  Our project idea aims to overcome this limitation by taking inspiration from  that just needs a video and segmentation masks of objects of interest, and is capable of estimating omnimattes — an alpha matte and color image that includes the subject along with all its time-varying scene elements.
 
 Our contribution will look to have two stages. Stage one will include extracting the omnimatte(s) from a video sequence. Stage two will include taking the omnimatte and inserting it into sequence with our network. Our network will have to make sure the omnimatte is temporally consistent, is blended with the background, is inserted into a logical location, and accounts for style transfer for the target sequence.
+
+\subsection{Loss}
+We enforce inserting objects logically in locations that are readily available in the scene. Thus, we aim to
+
+\subsection{Insertion Gradient Loss}
+We aim to enforce a smooth insertion between the object and the background. In order to enforce this, we first plan to take the omnimatte mask as an input. For this region, we plan to attempt to match  
+
+\subsubsection{Style Loss}
+The style of an image usually refers to the texture and other low level features of an image. We plan to use the features from the output of our backbone network. We may experiment with using earlier outputs from layers as they will likely have learned more low-level features.
+
+We compute the **gram matrix**
+
+\subsubsection{Temporal Consistency Loss}
+A novel contribution and main challenge of this work is to maintain temporal consistency. Intuitively, when inserting an object into a video, we want to see the following:
+
+\begin{enumerate}
+    \item Cohesive and smooth motion frame to frame
+    \item Possible occlusion if passing by another object in the scene
+    \item Disappearance of the object when at the edge of the frame
+\end{enumerate}
 
 \section{Experiments and Timeline}
 \begin{center}
