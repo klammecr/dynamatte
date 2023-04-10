@@ -18,3 +18,9 @@ Dynamatte: A dynamic matting method to generate in scene video fusion
 *Richa
 +Achleschwar
 $Chris
+
+
+## Running Video Preprocessing
+```
+python video_preprocessing/process_video.py -v video_preprocessing/sailboats.mp4 -o datasets/sailboat
+```
