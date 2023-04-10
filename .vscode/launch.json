@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-v", "video_preprocessing/sample.mp4", "-o", "test"]
+            "args": ["-v", "video_preprocessing/sailboats.mp4", "-o", "datasets/sailboat"]
         }
     ]
 }
