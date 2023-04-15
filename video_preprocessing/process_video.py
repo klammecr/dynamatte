@@ -71,8 +71,7 @@ def get_optical_flow_model(device = "cuda"):
     model = model.eval()
     return model
 
-def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (448,256), device = "cuda"):
-    frame_num     = -1
+def extract_and_save_frames(frames, out_path, mask_generator, of_model, device = "cuda"):
     prev_frame_rz = None
     homographies  = []
     
@@ -82,6 +81,8 @@ def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (
         # TODO: Check the temporal consistency between the classes, ideally it should be the same if the camera is still and all 
         # objects do not leave the scene/not objects enter the scene. Certainly a limitation because there would need to be an 
         # association step.
+
+        frame_str = str(idx).zfill(4)
         masks = mask_generator.generate(frame)
         for i, mask in enumerate(masks):
             # Create the subdir
@@ -148,15 +149,15 @@ if __name__ == "__main__":
     ap.add_argument("-o", "--output_path")
     args = ap.parse_args()
 
+    # Output image size
+    out_size = (448,256)
+
     # Read the video
     imgs = []
     if ".mp4" in args.video_path.split("/")[-1]:
         vc = cv2.VideoCapture(args.video_path)
         while vc.isOpened():
-            frame_num += 1
-            frame_str = str(frame_num).zfill(4)
             ret, frame = vc.read()
-
             if ret:
                 # Resize the frame to [256,448]
                 frame_rz = cv2.resize(frame, out_size, cv2.INTER_NEAREST)
