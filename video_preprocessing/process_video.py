@@ -6,6 +6,7 @@ import subprocess
 import numpy as np
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 from torchvision.models.optical_flow import raft_large
+from torchvision.models.detection.mask_rcnn import maskrcnn_resnet50_fpn
 import torch
 import flowpy
 
@@ -71,62 +72,60 @@ def get_optical_flow_model(device = "cuda"):
     model = model.eval()
     return model
 
-def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (448,256), device = "cuda"):
-    frame_num     = -1
-    prev_frame_rz = None
+def extract_and_save_frames(frames, out_path, mask_generator, of_model, device = "cuda"):
+    # Init variables
+    prev_frame    = None
     homographies  = []
-    while vc.isOpened():
-        frame_num += 1
-        frame_str = str(frame_num).zfill(4)
-        ret, frame = vc.read()
-        
-        if ret:
-            # Resize the frame to [256,448]
-            frame_rz = cv2.resize(frame, out_size, cv2.INTER_NEAREST)
+    
+    for idx, frame in enumerate(frames):
 
-            # Extract out the masks
-            # TODO: Check the temporal consistency between the classes, ideally it should be the same if the camera is still and all 
-            # objects do not leave the scene/not objects enter the scene. Certainly a limitation because there would need to be an 
-            # association step.
-            masks = mask_generator.generate(frame_rz)
-            for i, mask in enumerate(masks):
-                # Create the subdir
-                if not os.path.exists(f"{out_path}/mask/{str(i).zfill(2)}"):
-                    os.makedirs(f"{out_path}/mask/{str(i).zfill(2)}")
+        # Extract out the masks
+        # TODO: Check the temporal consistency between the classes, ideally it should be the same if the camera is still and all 
+        # objects do not leave the scene/not objects enter the scene. Certainly a limitation because there would need to be an 
+        # association step.
+        frame_str = str(idx).zfill(4)
 
-                # Save the mask
-                seg_img = mask['segmentation'].astype("float") * 255
-                cv2.imwrite(f"{out_path}/mask/{str(i).zfill(2)}/{frame_str}.png", seg_img)
-            del masks
+        # Masks
+        # masks = mask_generator.generate(frame)
 
-            if prev_frame_rz is not None:
-                # Compute the homography between frames
-                H_matrix = cv_find_homography(prev_frame_rz, frame_rz)
-                homographies.append(H_matrix.flatten())
+        # for i, mask in enumerate(masks):
+        #     # Create the subdir
+        #     if not os.path.exists(f"{out_path}/mask/{str(i).zfill(2)}"):
+        #         os.makedirs(f"{out_path}/mask/{str(i).zfill(2)}")
 
-                # Convert from OpenCV (BGR) to RGB => Add a batch dimension of size 1 => (N, H, W, C) -> (N, C, H, W)
-                prev_img = torch.tensor(prev_frame_rz[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
-                img      = torch.tensor(frame_rz[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
+        #     # Save the mask
+        #     seg_img = mask['segmentation'].astype("float") * 255
+        #     cv2.imwrite(f"{out_path}/mask/{str(i).zfill(2)}/{frame_str}.png", seg_img)
+        # del masks
 
-                # Compute forward and backward flow
-                forward_flow  = of_model(prev_img.float(), img.float())
-                backward_flow = of_model(img.float(), prev_img.float())
+        if prev_frame is not None:
+            # Compute the homography between frames
+            H_matrix = cv_find_homography(prev_frame, frame)
+            homographies.append(H_matrix.flatten())
 
-                # Save the flows
-                flowpy.flow_write(f"{out_path}/flow/{frame_str}.flo", forward_flow.numpy(), format = "flo")
-                flowpy.flow_write(f"{out_path}/flow_backward/{frame_str}.flo", backward_flow.numpy(), format = "flo")
+            # Convert from OpenCV (BGR) to RGB => Add a batch dimension of size 1 => (N, H, W, C) -> (N, C, H, W)
+            prev_img = torch.tensor(prev_frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
+            img      = torch.tensor(frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
 
-                # Clear up temporary CUDA memory
-                del img
-                del prev_img
-                del forward_flow
-                del backward_flow
+            # Compute forward and backward flow
+            forward_flow  = of_model(prev_img.float(), img.float())
+            backward_flow = of_model(img.float(), prev_img.float())
+
+            # Save the flows
+            flowpy.flow_write(f"{out_path}/flow/{frame_str}.flo", forward_flow[-1].cpu()[0].detach().numpy(), format = "flo")
+            flowpy.flow_write(f"{out_path}/flow_backward/{frame_str}.flo", backward_flow[-1].cpu()[0].detach().numpy(), format = "flo")
+
+            # Clear up temporary CUDA memory
+            del img
+            del prev_img
+            del forward_flow
+            del backward_flow
 
             # Save the frame to the given folder
-            cv2.imwrite(f"{out_path}/rgb/{frame_str}.png", frame_rz)
+            cv2.imwrite(f"{out_path}/rgb/{frame_str}.png", frame)
 
-            # Set previous frame for optical flow
-            prev_frame_rz = frame_rz
+        # Set previous frame for optical flow
+        prev_frame = frame
 
         # Clean up GPU memory each iteration
         torch.cuda.empty_cache()
@@ -138,11 +137,11 @@ def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (
     subprocess.run(["python", "omnimatte/datasets/confidence.py", "--dataroot", out_path])
 
     # Run the homography.py file to generate the homography file with bounds as a subprocess
-    subprocess.run(["python", 
-                    "omnimatte/datasets/homography.py",
-                    "--homography_path", f"{out_path}/homography.txt",
-                    "--width",  out_size[0],
-                    "--height", out_size[1]])
+    subprocess.run(["python", \
+                    "omnimatte/datasets/homography.py", \
+                    "--homography_path", f"{out_path}/homographies.txt", \
+                    "--width",  str(out_size[0]), \
+                    "--height", str(out_size[1])])
 
 # Entrypoint
 if __name__ == "__main__":
@@ -154,8 +153,22 @@ if __name__ == "__main__":
     ap.add_argument("-o", "--output_path")
     args = ap.parse_args()
 
+    # Output image size
+    out_size = (448,256)
+
     # Read the video
-    vc = cv2.VideoCapture(args.video_path)
+    imgs = []
+    if ".mp4" in args.video_path.split("/")[-1]:
+        vc = cv2.VideoCapture(args.video_path)
+        while vc.isOpened():
+            ret, frame = vc.read()
+            if ret:
+                # Resize the frame to [256,448]
+                frame_rz = cv2.resize(frame, out_size, cv2.INTER_NEAREST)
+                imgs.append(frame_rz)
+    else:
+        for file in sorted(os.listdir(args.video_path)):
+            imgs.append(cv2.imread(f"{args.video_path}/{file}"))
 
     # Create segmentation object
     sam_model = get_sam_model()
@@ -166,4 +179,4 @@ if __name__ == "__main__":
 
     # Extract out the frames and save them to a specified location at a given size
     create_and_validate_out_path(args.output_path)
-    extract_and_save_frames(vc, args.output_path, mask_generator, of_model)
+    extract_and_save_frames(imgs, args.output_path, mask_generator, of_model)

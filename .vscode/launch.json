@@ -5,13 +5,46 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Video Preprocessing",
+            "name": "Homography Vis",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-v", "video_preprocessing/sailboats.mp4", "-o", "datasets/sailboat"]
+            "args": [
+                "-v",
+                "datasets/tennis/rgb",
+                "-hf",
+                "datasets/tennis/homographies.txt"
+            ]
+        },
+        {
+            "name": "Video Preprocessing Folder Images",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-v",
+                "omnimatte/datasets/tennis/rgb",
+                "-o",
+                "datasets/tennis"
+            ]
+        },
+        {
+            "name": "Video Preprocessing MP4",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-v",
+                "video_preprocessing/sailboats.mp4",
+                "-o",
+                "datasets/sailboat"
+            ]
         }
     ]
 }
