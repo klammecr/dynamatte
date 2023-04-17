@@ -3,3 +3,4 @@ numpy
 opencv-python
 segment-anything
 torchvision
+flowpy

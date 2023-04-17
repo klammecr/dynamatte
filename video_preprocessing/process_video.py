@@ -2,10 +2,12 @@
 import cv2
 import argparse
 import os
+import subprocess
 import numpy as np
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 from torchvision.models.optical_flow import raft_large
 import torch
+import flowpy
 
 # In House
 
@@ -111,8 +113,8 @@ def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (
                 backward_flow = of_model(img.float(), prev_img.float())
 
                 # Save the flows
-                torch.save(forward_flow, f"{out_path}/flow/{frame_str}.flo")
-                torch.save(backward_flow, f"{out_path}/flow_backward/{frame_str}.flo")
+                flowpy.flow_write(f"{out_path}/flow/{frame_str}.flo", forward_flow.numpy(), format = "flo")
+                flowpy.flow_write(f"{out_path}/flow_backward/{frame_str}.flo", backward_flow.numpy(), format = "flo")
 
                 # Clear up temporary CUDA memory
                 del img
@@ -132,10 +134,15 @@ def extract_and_save_frames(vc, out_path, mask_generator, of_model, out_size = (
     # Save the homographies
     np.savetxt(f"{out_path}/homographies.txt", np.array(homographies))
 
-    # Now run the "postprocessing" of the preprocessing
-    # TODO: Run the confidence.py file to generate confidence images
-    # TODO: Run the homography.py file to generate the homography file with bounds
+    # Run the confidence.py file to generate confidence images as a subprocess
+    subprocess.run(["python", "omnimatte/datasets/confidence.py", "--dataroot", out_path])
 
+    # Run the homography.py file to generate the homography file with bounds as a subprocess
+    subprocess.run(["python", 
+                    "omnimatte/datasets/homography.py",
+                    "--homography_path", f"{out_path}/homography.txt",
+                    "--width",  out_size[0],
+                    "--height", out_size[1]])
 
 # Entrypoint
 if __name__ == "__main__":
@@ -160,8 +167,3 @@ if __name__ == "__main__":
     # Extract out the frames and save them to a specified location at a given size
     create_and_validate_out_path(args.output_path)
     extract_and_save_frames(vc, args.output_path, mask_generator, of_model)
-
-    # Compute the forward and backward flow
-
-    # Compute the homographies for the frames
-
