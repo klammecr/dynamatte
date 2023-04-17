@@ -29,3 +29,8 @@ git submodule update --init --recursive --remote
 ```
 python video_preprocessing/process_video.py -v video_preprocessing/sailboats.mp4 -o datasets/sailboat
 ```
+
+## Visualization of Homography
+```
+python video_processing/visualize_homography -v datasets/tennis/rgb -hf datasets/tennis/homographies.txt
+```
