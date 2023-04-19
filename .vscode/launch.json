@@ -5,6 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Video Preprocessing Headphone",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": 
+            [
+                "-v",
+                "datasets/headphone/rgb",
+                "-s",
+                "datasets/headphone/mask",
+                "-o",
+                "datasets/headphone"
+            ]
+        },
+        {
             "name": "Homography Vis",
             "type": "python",
             "request": "launch",

@@ -84,7 +84,7 @@ def get_optical_flow_model(device = "cuda"):
     model = model.eval()
     return model
 
-def extract_and_save_frames(frames, out_path, mask_generator, of_model, seg_masks = None, device = "cuda"):
+def extract_and_save_frames(frames, out_path, mask_generator, of_model, out_size, seg_masks = None, device = "cuda"):
     # Init variables
     prev_frame    = None
     homographies  = []
@@ -111,13 +111,14 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, seg_mask
         #     cv2.imwrite(f"{out_path}/mask/{str(i).zfill(2)}/{frame_str}.png", seg_img)
         # del masks
 
+        seg_mask = seg_masks[idx]
         if prev_frame is not None:
             # Compute the homography between frames
             prev_hom = homographies[-1].reshape(3,3)
             
             # Convert from OpenCV (BGR) to RGB => Add a batch dimension of size 1 => (N, H, W, C) -> (N, C, H, W)
-            prev_img = torch.tensor(prev_frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
-            img      = torch.tensor(frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
+            prev_img = torch.tensor(prev_frame[..., ::-1].copy() * prev_seg_mask).to(device).unsqueeze(0).permute(0, 3, 1, 2)
+            img      = torch.tensor(frame[..., ::-1].copy() * seg_mask).to(device).unsqueeze(0).permute(0, 3, 1, 2)
 
             # Compute forward and backward flow
             forward_flow  = of_model(prev_img.float(), img.float())
@@ -134,7 +135,6 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, seg_mask
             del backward_flow
 
         # Find the homography
-        seg_mask = seg_masks[idx]
         H_matrix = cv_find_homography(prev_frame, frame, prev_hom, prev_seg_mask, seg_mask)
         homographies.append(H_matrix.flatten()) 
 
@@ -169,12 +169,9 @@ if __name__ == "__main__":
         description = "Take OpenCV accepted videos and extract out frames to a folder like how Omnimatte likes")
     ap.add_argument("-v", "--video_path")
     ap.add_argument("-o", "--output_path")
-    # TODO: Make an optional argument for image size
+    ap.add_argument("-s", "--seg_mask_path")
+    ap.add_argument("-i", "--image_size", required=False, default=(448, 256), type = tuple)
     args = ap.parse_args()
-
-    # Output image size
-    out_size = (448,256)
-    #out_size = (854, 480)
 
     # Read the video
     imgs      = []
@@ -185,12 +182,15 @@ if __name__ == "__main__":
             ret, frame = vc.read()
             if ret:
                 # Resize the frame to [256,448]
-                frame_rz = cv2.resize(frame, out_size, cv2.INTER_NEAREST)
+                frame_rz = cv2.resize(frame, args.image_size, cv2.INTER_NEAREST)
                 imgs.append(frame_rz)
     else:
         for file in sorted(os.listdir(args.video_path)):
-            imgs.append(cv2.imread(f"{args.video_path}/{file}"))
-            seg_masks.append(cv2.imread(f"datasets/tennis/mask/01/{file}"))
+            frame = cv2.resize(cv2.imread(f"{args.video_path}/{file}"), args.image_size, cv2.INTER_NEAREST)
+            imgs.append(frame)
+        for file in sorted(os.listdir(args.seg_mask_path)):
+            mask = cv2.resize(cv2.imread(f"{args.seg_mask_path}/{file}"), args.image_size, cv2.INTER_NEAREST)
+            seg_masks.append(mask)
 
     # Create segmentation object
     sam_model = get_sam_model()
@@ -201,4 +201,4 @@ if __name__ == "__main__":
 
     # Extract out the frames and save them to a specified location at a given size
     create_and_validate_out_path(args.output_path)
-    extract_and_save_frames(imgs, args.output_path, mask_generator, of_model, seg_masks)
+    extract_and_save_frames(imgs, args.output_path, mask_generator, of_model, args.image_size, seg_masks)
