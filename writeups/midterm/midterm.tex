@@ -5,22 +5,38 @@
 \usepackage[a4paper, total={6in, 10in}]{geometry}
 
 \title{Dynamatte: A dynamic matting method to generate in scene video fusion}
-\author{Richa Mishra \\
-\small\texttt{richmis@andrew.cmu.edu}
+\author{Christopher Klammer \\ 
+\small\texttt{cklammer@andrew.cmu.edu}
 \and
 Achleshwar Luthra \\
 \small\texttt{achleshl@andrew.cmu.edu}
 \and
-Christopher Klammer \\
-\small\texttt{cklammer@andrew.cmu.edu}}
+Richa Mishra \\
+\small\texttt{richmis@andrew.cmu.edu}}
 
 % \date{\today}
-
-
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsbsy}
 \usepackage{graphicx}
 \usepackage{biblatex}
+\usepackage{pifont}
+\usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{parskip}
+\usepackage{twemojis}
+\usepackage{fontawesome}
+\usepackage{graphicx}
+\usepackage{tabularx}
+
+% %\checkmark from dingbat
+% \makeatletter
+% \DeclareFontFamily{U}{dingbat}{}
+% \DeclareFontShape{U}{dingbat}{m}{n}{<-> dingbat}{}
+% \newcommand{\dingbatfamily}{\fontencoding{U}\fontfamily{dingbat}\selectfont}
+% \newcommand{\dingbat@sym}[1]{{\dingbatfamily\symbol{#1}}}
+% \newcommand{\dbcheckmark}{\dingbat@sym{'104}}
+% \makeatother
+
 \addbibresource{midterm.bib}
 
 \begin{document}
@@ -41,32 +57,38 @@ Many works in the past have looked at the task of matte creation. Lu et al.\cite
 
 Sengupta et al.\cite{BMSengupta20} capture image and background pairs to estimate an alpha matte and foreground in order to place humans in scenes with novel backgrounds. It uses context switching to combine different cues and a self supervised adversarial loss to take a blended image with the novel background, generating realistic images. This method requires an additional photo of the background without the subject at the time of capture which limits us from applying this method to a random image where there is unavailability of subject-free background and it also demands for a certain amount of foresight during the process of data collection. 
 
-Our project idea aims to overcome this limitation\cite{BMSengupta20} by taking inspiration from\cite{lu2021} that just needs a video and segmentation masks of objects of interest, and is capable of estimating omnimattes $-$ an alpha matte and color image that includes the subject along with all its time-varying scene elements. 
+Our project idea aims to overcome this limitation\cite{BMSengupta20} by taking inspiration from\cite{lu2021} that needs a video, segmentation masks, and dense optical flow for objects of interest. This method is capable of estimating omnimattes $-$ an alpha matte and color image that includes the subject along with all its time-varying scene elements. 
 
 % \textcolor{red}{(Third potential paper: Layered Neural Atlases)}
 
 \section{The Idea}
 
 \subsection{Using Omnimattes for Video-in-Video Insertion}
-As stated before, Omnimatte is a method that has a purpose of taking an input mask for a given object and to return an omnimatte which contains color and opacity along with an optical flow field. Our solution aims to use omnimattes extracted from a video sequence and insert the omnimatte seamlessly into a different video sequence. More formally, for a given video sequence $\mathcal{V}$, we process the video sequence an extract out omnimattes for object $i$ at each time $t$, homography $H$, mask $M$ and flow $F$ as $O(I_t, H_t, M_t^i, F_t^i)$ = \{$\alpha_t^i, C_t^i, \hat{F_t^i}$\} where $\alpha_t^i$ represents the opacity for the object at a given frame, $C_t^i$ represents the color, and $\hat{F_t^i}$ is the object's flow.
+As stated before, Omnimatte ingests an input mask for a given object, optical flow, homographies, and returns an omnimatte which contains color and opacity along with an optical flow field. Our solution aims to use omnimattes extracted from a video sequence and inserts the omnimatte seamlessly into a different video sequence. More formally, for a given video sequence $\mathcal{V}$, we process the video sequence and extract out omnimattes for object $i$ at each time $t$, homography $H$, mask $M$ and flow $F$ as $O(I_t, H_t, M_t^i, F_t^i)$ = \{$\alpha_t^i, C_t^i, \hat{F_t^i}$\} where $\alpha_t^i$ represents the opacity for the object at a given frame, $C_t^i$ represents the color, and $\hat{F_t^i}$ is the object's flow.
 
 \subsection{Method}
-We plan to take the result of Omnimatte and seamlessly take one to many omnimattes and seamlessly insert them into an existing video. By doing this, we plan to use existing videos and allow dynamic objects to be added to the videos. The main challenge of this work will be to seamlessly perform domain transfer and conform to noise and background objects.
+We plan to take the result of omnimatte and use back-to-front compositing to insert them into another existing video. By doing this, we plan to use existing videos and allow dynamic objects to be added to the videos. The main challenge of this work will be to perform domain transfer and conform to noise and background objects.
 
 % Let's put this in the related work
 % In Background Matting },  Our project idea aims to overcome this limitation by taking inspiration from  that just needs a video and segmentation masks of objects of interest, and is capable of estimating omnimattes — an alpha matte and color image that includes the subject along with all its time-varying scene elements.
 
 Our contribution will look to have two stages. Stage one will include extracting the omnimatte(s) from a video sequence. Stage two will include taking the omnimatte and inserting it into sequence with our network. Our network will have to make sure the omnimatte is temporally consistent, is blended with the background, is inserted into a logical location, and accounts for style transfer for the target sequence.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/DynamatteDiagram.pdf}
+    \caption{Network Architecture for Dynamatte}
+    \label{fig:DynamatteArchitecture}
+\end{figure}
 
 \subsubsection{Insertion Gradient Loss}
 Laplacian image compositing is a popular method for blending two images. This method enforces gradient smoothness at the border of the insertion region. In order to enforce this, we first plan to take the omnimatte mask as an input and enforce this gradient loss at the border of the inserted object. 
 
 \subsubsection{Content Loss}
-We also plan to enforce a content loss to ensure that the inserted object is not being overly distorted or masked after inserting into the image. In order to do this, we take the MSE 
+We also plan to enforce a content loss to ensure that the inserted object is not being overly distorted or masked after inserting into the image. In order to do this, we find the LPIPS~\cite{zhang2018unreasonable} loss between the masked inserted object in the blended image and the masked omnimatte.
 
 \subsubsection{Style Loss}
-The style of an image usually refers to the texture and other low level features of an image. We plan to use the features from the output of our backbone network. We may experiment with using earlier outputs from layers as they will likely have learned more low-level features.
+The style of an image usually refers to the texture and other low level features of an image. We plan to use the intermediate layer outputs from a VGG-19 encoder for both the target image and the composite image and compute the similarity between the low level features.
 
 We compute the \textbf{gram matrix} for all $C$ feature vectors of the feature maps for the equence with the inserted object and the original target sequence. We can then calculate the style loss as a mean squared error of the object and target's gram matricies.
 
@@ -87,33 +109,40 @@ A novel contribution and main challenge of this work is to maintain temporal con
 \end{enumerate}
 
 \section{Experiments and Timeline}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/dynamatte-preprocess.pdf}
+    \caption{\textbf{Different Preprocessing Stages}}
+    \label{fig:preprocess}
+\end{figure}
+
+\subsection{Data Preprocessing}
+Setting up the baseline for extracting omnimatte involved multi-step preprocessing of the input videos. Along with RGB frames, the method~\cite{lu2021} takes segmentation masks (corresponding to the subject of interest), optical flow, and homography between frames as input. We have setup a small piece of software that takes in a normal RGB video and yeilds all the necessary inputs. ~\ref{fig:preprocess} shows all the modalities that we need to pass in to our network. 
+
+We have used Segment Anything Model (SAM)~\cite{kirillov2023segany} to generate binary masks. SAM takes input points as prompts and gives corresponding masks. Currently, there is no model for videos so we have assumed our foreground to have a constant velocity for 50 frames. We chose this approach over fine-tuning as we wanted to segment any foreground of our choice and not just a particular category. For optical flow extraction, we have used RAFT~\cite{teed2020raft} provided by torchvision pretrained on Flying Chairs~\cite{fischer2015flownet} and FlyingThings3D~\cite{Mayer_2016}. The confidence maps and homography matrices are estimated using the Omnimatte source code \footnote{\href{https://github.com/erikalu/omnimatte}{https://github.com/erikalu/omnimatte}}. 
+
 \begin{center}
-\begin{tabular}{|| p{2cm} | p{12cm} ||}
+\begin{tabular}{||p{1cm} | p{2cm} | p{10cm} ||}
     \hline
-    \textbf{Date} & \textbf{Milestone} \\
+    \textbf{Status} & \textbf{Date} & \textbf{Milestone} \\
     \hline
-    Mid March & Start development of baselines \\
+    \checkmark & March & Start development of baselines \\
     \hline
-    Early April & Baseline results finished, mid-term report write-up, start development of proposed solution \\
+    \faWrench & Early April & Baseline results finished, mid-term report write-up \\
     \hline
-    Mid April & Progress on proposed solution, some initial results with issues documented \\
+    \ding{55} & Mid April & Start implementation of proposed solution, progress on proposed solution, some initial results with issues documented \\
     \hline
-    End April & Finished attempt of proposed solution with qualitative results, lessons learned, and limitations\\
+    \ding{55} & End April & Finished attempt of proposed solution with qualitative results, lessons learned, and limitations\\
     \hline
-    Early May & Written final report \\
+    \ding{55} & Early May & Written final report \\
     \hline
 \end{tabular}
 \end{center}
 
 \section{Baselines}
-Our baselines 
-
-
-Old:
 As a baseline, we plan to manually extract omnimattes and attempt to use an extremely simple "lazy" cut and paste as our first baseline. This baseline will not be temporally consistent but will place the omnimattes in a "logical" part in the image. We then will perform frame-by-frame poisson image blending to create a blended video. We then will either use the famous GP-GAN\cite{10.1145/3343031.3350944} or Background Matting \cite{BMSengupta20} to create the blended video that will be more temporally consistent.
 
-\section{Results}
-
+Now that the data preprocessing and infrastructure tasks have been finished, we plan to now move our focus towards running our proposed method for custom videos.
 
 \printbibliography
 \end{document}

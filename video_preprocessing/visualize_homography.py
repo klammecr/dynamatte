@@ -20,8 +20,13 @@ if __name__ == "__main__":
         # Read iamge and homography
         img = cv2.imread(f"{args.video_path}/{file}")
         if prev_img is not None:
-            H = homographies[i].reshape(3,3)
-            warped_prev = cv2.warpPerspective(prev_img, H, (img.shape[1], img.shape[0]))
+            # Find the frame-to-frame homography from the global
+            prev_H = homographies[i - 1].reshape(3,3)
+            H      = homographies[i].reshape(3,3)
+            final_H = H @ np.linalg.inv(prev_H)
+
+            # Warp the image
+            warped_prev = cv2.warpPerspective(prev_img, final_H, (img.shape[1], img.shape[0]))
             warped_prev_gray = cv2.cvtColor(warped_prev, cv2.COLOR_BGR2GRAY)
             img_gray         = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             diff_img = 255 - cv2.absdiff(warped_prev_gray, img_gray)

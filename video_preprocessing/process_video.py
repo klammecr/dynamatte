@@ -12,11 +12,20 @@ import flowpy
 
 # In House
 
-def cv_find_homography(prev_img, img):
+def cv_find_homography(prev_img, img, prev_hom = np.eye(3), prev_seg_mask = None, seg_mask = None):
+    if prev_img is None:
+        return prev_hom
+    
+    # Edge case for masks being none
+    if prev_seg_mask is None:
+        prev_seg_mask = np.ones_like(prev_img)
+    if seg_mask is None:
+        seg_mask = np.ones_like(img)
+
     # Find the keypoints with ORB
     orb = cv2.ORB_create()
-    kp_curr, desc_curr  = orb.detectAndCompute(img, None)
-    kp_prev, desc_prev  = orb.detectAndCompute(prev_img, None)
+    kp_curr, desc_curr  = orb.detectAndCompute(img, mask = 255 - seg_mask[:, :, 0])
+    kp_prev, desc_prev  = orb.detectAndCompute(prev_img, mask = 255 - prev_seg_mask[:, :, 0])
 
     # Find correspondences
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
@@ -28,7 +37,10 @@ def cv_find_homography(prev_img, img):
 
     # Find the forward homography
     M, mask = cv2.findHomography(prev_pts, curr_pts, cv2.RANSAC, 5.0)
-    return M
+
+    # Obtain the homography w.r.t. the first frame
+    cascaded_H = M @ prev_hom
+    return cascaded_H
 
 def create_and_validate_out_path(out_path):
     # Omnimatte Spec:
@@ -72,11 +84,12 @@ def get_optical_flow_model(device = "cuda"):
     model = model.eval()
     return model
 
-def extract_and_save_frames(frames, out_path, mask_generator, of_model, device = "cuda"):
+def extract_and_save_frames(frames, out_path, mask_generator, of_model, seg_masks = None, device = "cuda"):
     # Init variables
     prev_frame    = None
     homographies  = []
-    
+    prev_hom      = np.eye(3)
+    prev_seg_mask  = None
     for idx, frame in enumerate(frames):
 
         # Extract out the masks
@@ -100,9 +113,8 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, device =
 
         if prev_frame is not None:
             # Compute the homography between frames
-            H_matrix = cv_find_homography(prev_frame, frame)
-            homographies.append(H_matrix.flatten())
-
+            prev_hom = homographies[-1].reshape(3,3)
+            
             # Convert from OpenCV (BGR) to RGB => Add a batch dimension of size 1 => (N, H, W, C) -> (N, C, H, W)
             prev_img = torch.tensor(prev_frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
             img      = torch.tensor(frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
@@ -121,11 +133,17 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, device =
             del forward_flow
             del backward_flow
 
-            # Save the frame to the given folder
-            cv2.imwrite(f"{out_path}/rgb/{frame_str}.png", frame)
+        # Find the homography
+        seg_mask = seg_masks[idx]
+        H_matrix = cv_find_homography(prev_frame, frame, prev_hom, prev_seg_mask, seg_mask)
+        homographies.append(H_matrix.flatten()) 
+
+        # Save the frame to the given folder
+        cv2.imwrite(f"{out_path}/rgb/{frame_str}.png", frame)
 
         # Set previous frame for optical flow
         prev_frame = frame
+        prev_seg_mask = seg_mask
 
         # Clean up GPU memory each iteration
         torch.cuda.empty_cache()
@@ -151,13 +169,16 @@ if __name__ == "__main__":
         description = "Take OpenCV accepted videos and extract out frames to a folder like how Omnimatte likes")
     ap.add_argument("-v", "--video_path")
     ap.add_argument("-o", "--output_path")
+    # TODO: Make an optional argument for image size
     args = ap.parse_args()
 
     # Output image size
     out_size = (448,256)
+    #out_size = (854, 480)
 
     # Read the video
-    imgs = []
+    imgs      = []
+    seg_masks = []
     if ".mp4" in args.video_path.split("/")[-1]:
         vc = cv2.VideoCapture(args.video_path)
         while vc.isOpened():
@@ -169,6 +190,7 @@ if __name__ == "__main__":
     else:
         for file in sorted(os.listdir(args.video_path)):
             imgs.append(cv2.imread(f"{args.video_path}/{file}"))
+            seg_masks.append(cv2.imread(f"datasets/tennis/mask/01/{file}"))
 
     # Create segmentation object
     sam_model = get_sam_model()
@@ -179,4 +201,4 @@ if __name__ == "__main__":
 
     # Extract out the frames and save them to a specified location at a given size
     create_and_validate_out_path(args.output_path)
-    extract_and_save_frames(imgs, args.output_path, mask_generator, of_model)
+    extract_and_save_frames(imgs, args.output_path, mask_generator, of_model, seg_masks)
