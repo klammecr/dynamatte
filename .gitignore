@@ -15,3 +15,6 @@ test*
 datasets/sailboat*
 datasets/tennis*
 datasets/headphone*
+*__pycache__*
+*build*
+*egg*

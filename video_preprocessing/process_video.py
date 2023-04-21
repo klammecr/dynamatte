@@ -6,11 +6,11 @@ import subprocess
 import numpy as np
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 from torchvision.models.optical_flow import raft_large
-from torchvision.models.detection.mask_rcnn import maskrcnn_resnet50_fpn
 import torch
 import flowpy
 
 # In House
+from src.utils import read_video
 
 def cv_find_homography(prev_img, img, prev_hom = np.eye(3), prev_seg_mask = None, seg_mask = None):
     if prev_img is None:
@@ -91,13 +91,6 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, out_size
     prev_hom      = np.eye(3)
     prev_seg_mask  = None
     for idx, frame in enumerate(frames):
-
-        # Extract out the masks
-        # TODO: Check the temporal consistency between the classes, ideally it should be the same if the camera is still and all 
-        # objects do not leave the scene/not objects enter the scene. Certainly a limitation because there would need to be an 
-        # association step.
-        frame_str = str(idx).zfill(4)
-
         # Masks
         # masks = mask_generator.generate(frame)
 
@@ -110,8 +103,8 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, out_size
         #     seg_img = mask['segmentation'].astype("float") * 255
         #     cv2.imwrite(f"{out_path}/mask/{str(i).zfill(2)}/{frame_str}.png", seg_img)
         # del masks
-
-        seg_mask = seg_masks[idx]
+        frame_str = str(idx).zfill(4)
+        seg_mask  = seg_masks[idx]
         if prev_frame is not None:
             # Compute the homography between frames
             prev_hom = homographies[-1].reshape(3,3)
@@ -174,23 +167,8 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     # Read the video
-    imgs      = []
-    seg_masks = []
-    if ".mp4" in args.video_path.split("/")[-1]:
-        vc = cv2.VideoCapture(args.video_path)
-        while vc.isOpened():
-            ret, frame = vc.read()
-            if ret:
-                # Resize the frame to [256,448]
-                frame_rz = cv2.resize(frame, args.image_size, cv2.INTER_NEAREST)
-                imgs.append(frame_rz)
-    else:
-        for file in sorted(os.listdir(args.video_path)):
-            frame = cv2.resize(cv2.imread(f"{args.video_path}/{file}"), args.image_size, cv2.INTER_NEAREST)
-            imgs.append(frame)
-        for file in sorted(os.listdir(args.seg_mask_path)):
-            mask = cv2.resize(cv2.imread(f"{args.seg_mask_path}/{file}"), args.image_size, cv2.INTER_NEAREST)
-            seg_masks.append(mask)
+    imgs      = read_video(args.video_path, args.image_size)
+    seg_masks = read_video(args.seg_mask_path, args.image_size)
 
     # Create segmentation object
     sam_model = get_sam_model()
