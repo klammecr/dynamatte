@@ -40,6 +40,7 @@ if __name__ == "__main__":
         # cv2.imshow("yo", (src >= 200).astype('uint8')*255)
         # cv2.waitKey()
         mask = np.max(src >= 200, axis=2)
+        mask = cv2.dilate(mask.astype('uint8'), np.ones((3,3), np.uint8))
         bgr = [poisson_blend(src[:, :, c], tgt[:, :, c], mask) for c in range(src.shape[-1])]
         blend_img_norm = cv2.normalize(cv2.merge(bgr), None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8UC3)
         cv2.imshow("Blended Image", blend_img_norm)
