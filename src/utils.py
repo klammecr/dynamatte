@@ -20,9 +20,9 @@ def read_video(video_path, image_size, filter = ""):
         while vc.isOpened():
             ret, frame = vc.read()
             if ret:
-                # Resize the frame to [256,448]
-                frame_rz = cv2.resize(frame, image_size, cv2.INTER_NEAREST)
-                imgs.append(frame_rz)
+                imgs.append(frame)
+            else:
+                vc.release()
     else:
         for file in sorted(os.listdir(video_path)):
             if filter in file:

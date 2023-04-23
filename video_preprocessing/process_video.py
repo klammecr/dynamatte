@@ -12,15 +12,19 @@ import flowpy
 # In House
 from src.utils import read_video
 
-def cv_find_homography(prev_img, img, prev_hom = np.eye(3), prev_seg_mask = None, seg_mask = None):
+def cv_find_homography(prev_img, img, out_size, prev_hom = np.eye(3), prev_seg_mask = None, seg_mask = None):
     if prev_img is None:
         return prev_hom
     
+    # Resize
+    img = cv2.resize(img, out_size, cv2.INTER_NEAREST)
+    prev_img = cv2.resize(prev_img, out_size, cv2.INTER_NEAREST)
+
     # Edge case for masks being none
     if prev_seg_mask is None:
-        prev_seg_mask = np.ones_like(prev_img)
+        prev_seg_mask = np.ones(out_size)
     if seg_mask is None:
-        seg_mask = np.ones_like(img)
+        seg_mask = np.ones_like(out_size)
 
     # Find the keypoints with ORB
     orb = cv2.ORB_create()
@@ -106,20 +110,26 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, out_size
         frame_str = str(idx).zfill(4)
         seg_mask  = seg_masks[idx]
         if prev_frame is not None:
+            # Resize
+            frame = cv2.resize(frame, out_size, cv2.INTER_NEAREST)
+            prev_frame = cv2.resize(prev_frame, out_size, cv2.INTER_NEAREST)
+            
             # Compute the homography between frames
             prev_hom = homographies[-1].reshape(3,3)
             
             # Convert from OpenCV (BGR) to RGB => Add a batch dimension of size 1 => (N, H, W, C) -> (N, C, H, W)
-            prev_img = torch.tensor(prev_frame[..., ::-1].copy() * prev_seg_mask).to(device).unsqueeze(0).permute(0, 3, 1, 2)
-            img      = torch.tensor(frame[..., ::-1].copy() * seg_mask).to(device).unsqueeze(0).permute(0, 3, 1, 2)
+            prev_img = torch.tensor(prev_frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
+            img      = torch.tensor(frame[..., ::-1].copy()).to(device).unsqueeze(0).permute(0, 3, 1, 2)
 
             # Compute forward and backward flow
             forward_flow  = of_model(prev_img.float(), img.float())
             backward_flow = of_model(img.float(), prev_img.float())
+            forward_flow  = forward_flow[-1].cpu()[0].permute(1, 2, 0).detach().numpy()
+            backward_flow = backward_flow[-1].cpu()[0].permute(1, 2, 0).detach().numpy()
 
             # Save the flows
-            flowpy.flow_write(f"{out_path}/flow/{frame_str}.flo", forward_flow[-1].cpu()[0].detach().numpy(), format = "flo")
-            flowpy.flow_write(f"{out_path}/flow_backward/{frame_str}.flo", backward_flow[-1].cpu()[0].detach().numpy(), format = "flo")
+            flowpy.flow_write(f"{out_path}/flow/{frame_str}.flo", forward_flow, format = "flo")
+            flowpy.flow_write(f"{out_path}/flow_backward/{frame_str}.flo", backward_flow, format = "flo")
 
             # Clear up temporary CUDA memory
             del img
@@ -128,11 +138,12 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, out_size
             del backward_flow
 
         # Find the homography
-        H_matrix = cv_find_homography(prev_frame, frame, prev_hom, prev_seg_mask, seg_mask)
+        H_matrix = cv_find_homography(prev_frame, frame, out_size, prev_hom, prev_seg_mask, seg_mask)
         homographies.append(H_matrix.flatten()) 
 
         # Save the frame to the given folder
-        cv2.imwrite(f"{out_path}/rgb/{frame_str}.png", frame)
+        frame_rz = cv2.resize(frame, out_size, cv2.INTER_NEAREST)
+        cv2.imwrite(f"{out_path}/rgb/{frame_str}.png", frame_rz)
 
         # Set previous frame for optical flow
         prev_frame = frame
@@ -151,8 +162,8 @@ def extract_and_save_frames(frames, out_path, mask_generator, of_model, out_size
     subprocess.run(["python", \
                     "omnimatte/datasets/homography.py", \
                     "--homography_path", f"{out_path}/homographies.txt", \
-                    "--width",  str(out_size[0]), \
-                    "--height", str(out_size[1])])
+                    "--width",  str(frames[0].shape[1]), \
+                    "--height", str(frames[0].shape[0])])
 
 # Entrypoint
 if __name__ == "__main__":
