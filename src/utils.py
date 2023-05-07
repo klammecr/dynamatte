@@ -26,7 +26,7 @@ def read_video(video_path, image_size, filter = ""):
     else:
         for file in sorted(os.listdir(video_path)):
             if filter in file:
-                frame = cv2.resize(cv2.imread(f"{video_path}/{file}"), image_size, cv2.INTER_NEAREST)
+                frame = cv2.resize(cv2.imread(f"{video_path}/{file}", cv2.IMREAD_UNCHANGED), image_size, cv2.INTER_NEAREST)
                 imgs.append(frame)
     return imgs
 

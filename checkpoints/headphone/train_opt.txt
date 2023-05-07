@@ -26,6 +26,7 @@
           lambda_alpha_l0: 0.005                         
           lambda_alpha_l1: 0.01                          
         lambda_alpha_warp: 0.005                         
+            lambda_bg_hom: 0.5                           
               lambda_mask: 50                            
         lambda_recon_flow: 1.0                           
         lambda_recon_warp: 0.0                           
