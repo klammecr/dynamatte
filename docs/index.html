@@ -14,8 +14,12 @@
 	</header>
 	<main>
 		<!-- Add your research results content here -->
-		<h2>Video Results</h2>
 		<section>
+			<h2><strong>Abstract</strong></h2>
+			Decomposing an input video into a set of layers for different objects in the scene is a long-standing fundamental problem in computer vision. We propose decomposing a video into layers of omnimattes - a set of alpha mattes and RGB values, where each layer represents not only the object but also the effects associated with it (such as shadows, reflections, etc.). Prior work that deals with this problem assumes that the video can be mapped to a static canvas thus limiting their solution to videos with limited camera motion, specifically panning camera motion. In our work, we aim to propose a more generic solution that can deal with unconstrained dynamic camera motion. To solve this problem, we propose a new loss function that can account for time-varying background and we also experiment with learnable homographies between consecutive frames as homography estimates can be incorrect when there is a lot of depth variation in the scene. In this report, we show our results on challenging videos, talk about failure cases and potential future directions. 
+		</section>
+		<section>
+			<h2>Video Results</h2>
 			<table class = center>
 				<tr>
 					<td><strong> Original </strong></td>
@@ -35,11 +39,6 @@
 				  <td><img src="https://lh3.googleusercontent.com/drive-viewer/AFGJ81qN-xtuD6JYR4bE6vF3TldnDcs9k1k_w-gmVs9Utd5ev89iYdMAUXjgdGmr0Kbidsq0AHky6cCaNUitp3lw4H1ePO3CeA=s2560" width="300"></td>
 				</tr>
 			  </table>
-			<!-- Add any images or other media here -->
-		</section>
-		<section>
-			<h2>Research Project 2</h2>
-			<p>Description of your second research project.</p>
 			<!-- Add any images or other media here -->
 		</section>
 	</main>
